@@ -28,6 +28,11 @@ runs/
 outputs/
 *.log
 
+# --- Pliki tymczasowe MS Office (blokady otwartych dokumentów) ---
+~$*.docx
+~$*.xlsx
+~$*.pptx
+
 # --- IDE / system ---
 .vscode/
 .idea/
