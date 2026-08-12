@@ -222,7 +222,246 @@ Word tworzy pliki `~$nazwa.docx`, gdy dokument jest otwarty. Ignorujemy je w `.g
 
 ## Etap 1 — Detekcja + tracking + zliczanie
 
-_(kroki 1.1–1.6 — uzupełnimy przy realizacji)_
+### [x] Krok 1.1 — Źródła wideo
+
+**1. Utwórz folder na dane** (jest w `.gitignore`, filmy nie idą do repo):
+
+```
+mkdir data
+```
+
+**2. Pobierz krótki klip drogowy** (darmowe, bez logowania) i zapisz jako `data/traffic.mp4`:
+
+- Pexels: <https://www.pexels.com/videos/> (szukaj „traffic" / „highway")
+- Pixabay: <https://pixabay.com/videos/>
+- Coverr: <https://coverr.co/>
+
+Wybierz krótki klip (10–20 s), Download w HD.
+
+**3. Sprawdź, że model łyka wideo** (wykrywa `car`/`truck`/`bus`):
+
+```
+yolo predict model=yolo26n.pt source=data/traffic.mp4 show=True device=0
+```
+
+**4. Ludzie:** źródło = kamerka (`source=0`) z Kroku 0.5, nic nie trzeba dorabiać.
+
+- **Dlaczego plik + kamerka:** plik daje powtarzalną scenę (potrzebne do pomiaru „przed/po" w Etapie 3 TensorRT), kamerka daje demo na żywo.
+- **Checkpoint:** `data/traffic.mp4` odtwarza się z wykrytymi pojazdami; kamerka działa dla ludzi. ✅
+
+### [x] Krok 1.2 — Tracking (ByteTrack)
+
+Uwaga z realizacji: `show=True` = live okno (OpenCV `cv2.imshow`). CLI `yolo track` i skrypt
+robią to samo — CLI to wrapper na `model.track(...)`. W bardzo gęstej scenie ID rosną do 1000+
+(zasłonięcia) → do czystego licznika lepszy prostszy klip.
+
+**A) Podgląd z linii komend** (`track` zamiast `predict` → ramki z `id`):
+
+```
+yolo track model=yolo26n.pt source=data/traffic.mp4 tracker=bytetrack.yaml show=True device=0
+```
+
+**B) Skrypt `track_demo.py`** — wyciąganie ID w kodzie:
+
+```python
+from ultralytics import YOLO
+
+model = YOLO("yolo26n.pt")
+
+# track zamiast predict; persist=True = pamiętaj ID między klatkami
+# stream=True = przetwarzaj klatka po klatce (oszczędza pamięć na wideo)
+results = model.track(
+    source="data/traffic.mp4",
+    tracker="bytetrack.yaml",
+    persist=True,
+    stream=True,
+    show=True,
+    device=0,
+)
+
+for r in results:
+    if r.boxes.id is not None:              # czy są śledzone obiekty
+        ids = r.boxes.id.int().tolist()     # lista ID w tej klatce
+        print("Sledzone ID:", ids)
+```
+
+```
+python track_demo.py
+```
+
+- **Dlaczego:** detektor daje ramki na każdej klatce osobno; tracker łączy je w ścieżki z trwałym `id`. `r.boxes.id` = te numery (podstawa pod zliczanie).
+- **Checkpoint:** ten sam obiekt ma stały numer przez kolejne klatki; skrypt wypisuje listy ID.
+
+### [ ] Krok 1.3 — Wirtualna linia + licznik
+
+Skrypt `counter.py` (gotowy `ObjectCounter` z Ultralytics):
+
+```python
+import cv2
+from ultralytics import solutions
+
+cap = cv2.VideoCapture("data/highway.mp4")
+assert cap.isOpened(), "Nie moge otworzyc wideo"
+
+w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+line_points = [(0, h // 2), (w, h // 2)]   # linia pozioma na srodku
+
+counter = solutions.ObjectCounter(
+    model="yolo26n.pt",
+    region=line_points,
+    classes=[2, 3, 5, 7],   # COCO: car, motorcycle, bus, truck
+    show=True,
+    device=0,
+)
+
+while cap.isOpened():
+    ok, frame = cap.read()
+    if not ok:
+        break
+    counter(frame)
+
+cap.release()
+cv2.destroyAllWindows()
+```
+
+```
+python counter.py
+```
+
+- **Jak działa:** `ObjectCounter` = detekcja + tracking + logika przecięcia linii. Gdy środek śledzonego obiektu przejdzie przez `region`, rośnie licznik (z kierunkiem in/out).
+- **Regulacja:** linię przesuwasz zmieniając `h // 2` (np. `int(h*0.6)`).
+- **Checkpoint:** widać linię, licznik in/out rośnie przy przecięciach. ✅
+
+### [ ] Krok 1.3b — Własna logika licznika (zrozumienie)
+
+Skrypt `counter_manual.py` — ręczna wersja, żeby zrozumieć, co robi `ObjectCounter`.
+Idea: dla każdego ID pamiętamy poprzednie Y środka; gdy zmieni się znak `(cy - LINE_Y)`,
+obiekt przeszedł przez linię → `+1` (raz, dzięki zbiorowi `counted`).
+
+```python
+import cv2
+from ultralytics import YOLO
+
+model = YOLO("yolo26n.pt")
+
+cap = cv2.VideoCapture("data/highway.mp4")
+w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+cap.release()
+LINE_Y = h // 2
+
+VEHICLES = [2, 3, 5, 7]     # car, motorcycle, bus, truck
+prev_cy, counted, count = {}, set(), 0
+
+results = model.track(source="data/highway.mp4", tracker="bytetrack.yaml",
+                      persist=True, stream=True, classes=VEHICLES, device=0)
+
+for r in results:
+    frame = r.orig_img
+    cv2.line(frame, (0, LINE_Y), (w, LINE_Y), (255, 0, 255), 2)
+    if r.boxes.id is not None:
+        boxes = r.boxes.xyxy.cpu().numpy()
+        ids = r.boxes.id.int().cpu().tolist()
+        for (x1, y1, x2, y2), tid in zip(boxes, ids):
+            cy = int((y1 + y2) / 2)
+            if tid in prev_cy and tid not in counted:
+                if (prev_cy[tid] - LINE_Y) * (cy - LINE_Y) < 0:
+                    count += 1
+                    counted.add(tid)
+            prev_cy[tid] = cy
+            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+            cv2.putText(frame, str(tid), (int(x1), int(y1) - 5),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+    cv2.putText(frame, f"Licznik: {count}", (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+    cv2.imshow("Reczny licznik", frame)
+    if cv2.waitKey(1) & 0xFF == ord("q"):
+        break
+cv2.destroyAllWindows()
+```
+
+```
+python counter_manual.py
+```
+
+- **Sedno:** `(prev - LINE_Y) * (cy - LINE_Y) < 0` = zmiana znaku = przecięcie linii.
+- **Checkpoint:** własny licznik rośnie podobnie jak `ObjectCounter`. ✅
+
+**Sterowanie rozmiarem okna** (gdy wideo jest np. 4K i okno przerasta ekran) — rozmiar okna
+nie wpływa na detekcję (model liczy wewnętrznie w 640 px). Dwa sposoby:
+
+```python
+# Sposob 1 (zalecany): okno skalowalne, obraz bez zmian. Dodaj PRZED petla:
+cv2.namedWindow("Reczny licznik", cv2.WINDOW_NORMAL)
+cv2.resizeWindow("Reczny licznik", 1280, 720)
+```
+
+```python
+# Sposob 2: zmniejsz sama klatke przed wyswietleniem (zachowuje proporcje):
+disp = cv2.resize(frame, None, fx=0.5, fy=0.5)
+cv2.imshow("Reczny licznik", disp)
+```
+
+### [ ] Krok 1.4 — Kierunek in/out + liczenie ludzi
+
+Rozszerzenie `counter_manual.py`: konfiguracja `SOURCE`/`CLASSES` na górze + rozdzielenie
+kierunku. W momencie przecięcia porównujemy `cy` z `prev_cy[tid]`:
+
+```python
+if cy > prev_cy[tid]:   # środek zjechał w dół
+    count_down += 1
+else:                   # środek pojechał w górę
+    count_up += 1
+```
+
+Uruchomienie:
+
+```
+python counter_manual.py
+```
+
+- Pojazdy: `SOURCE = "data/highway.mp4"`, `CLASSES = [2, 3, 5, 7]`.
+- Ludzie (kamerka): `SOURCE = 0`, `CLASSES = [0]`.
+- Wskazówka: dla ruchu lewo-prawo lepsza linia pionowa (porównuj `cx` zamiast `cy`).
+- **Uwaga:** `SOURCE = 0` (bez nawiasów — pojedyncza wartość), `CLASSES = [0]` (lista).
+- **Checkpoint:** dwa liczniki (w dół / w górę) rosną zgodnie z kierunkiem; działa dla pojazdów i ludzi. ✅
+
+### [ ] Krok 1.5 — FPS na nakładce + zapis demo
+
+Dodatki do `counter_manual.py`:
+
+```python
+# 1) na gorze pliku
+import time
+
+# 2) po cv2.resizeWindow(...):
+import os
+os.makedirs("runs", exist_ok=True)
+writer = cv2.VideoWriter("runs/demo.mp4", cv2.VideoWriter_fourcc(*"mp4v"), 30, (w, h))
+prev_t = time.time()
+
+# 3) w petli, tuz przed cv2.imshow(...):
+now = time.time()
+fps = 1.0 / (now - prev_t) if now > prev_t else 0.0
+prev_t = now
+cv2.putText(frame, f"FPS: {fps:.1f}", (20, 80),
+            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+writer.write(frame)
+
+# 4) po petli, przed destroyAllWindows():
+writer.release()
+```
+
+- **FPS** = `1 / (czas jednej klatki)` — wydajność całego pipeline'u (detekcja+tracking+rysowanie).
+- **VideoWriter**: `mp4v` kodek, `30` FPS pliku, `(w, h)` = rozmiar klatki. `release()` finalizuje plik.
+- Kończ klawiszem `q` (nie Ctrl+C), żeby plik był kompletny. `runs/` jest w `.gitignore`.
+- **Checkpoint:** widać licznik FPS; `runs/demo.mp4` otwiera się z ramkami i licznikami.
+
+### [ ] Krok 1.6 — Refaktor do modułów `src/`
+
+_(rozbicie skryptu na ingest / detection+tracking / logic / app.py — uzupełnimy przy realizacji)_
 
 ---
 
