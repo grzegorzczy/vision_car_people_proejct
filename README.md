@@ -7,6 +7,12 @@ i (docelowo) do sterownika przemysłowego.
 Projekt jest budowany **pod portfolio, CV i GitHub**, i celowo mapuje się 1:1 na
 oferty pracy w obszarze *edge AI / video analytics / real-time / industrial AI*.
 
+## Demo (Projekt 1)
+
+![Licznik ludzi i pojazdów w czasie rzeczywistym](assets/demo.gif)
+
+*Detekcja YOLO26 + tracking ByteTrack: trwałe ID, kierunkowy licznik przekroczeń i FPS — na GPU.*
+
 ---
 
 ## Co konkretnie robi system (na przykładzie)
@@ -74,7 +80,29 @@ trening w chmurze, eksport, deployment).
 
 ---
 
-## Następny krok
+## Uruchomienie (Projekt 1)
 
-Startujemy **Projekt 1, Etap 0** (środowisko + pierwsza detekcja). Rozpisane krok po kroku
-w [`docs/05_projekt1_plan.md`](docs/05_projekt1_plan.md).
+Licznik ludzi i pojazdów w czasie rzeczywistym (YOLO26 + ByteTrack).
+
+```bash
+# 1. środowisko
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1          # Windows
+pip install ultralytics
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+
+# 2. konfiguracja: ustaw źródło i klasy w src/config.py
+#    pojazdy:  SOURCE = "data/highway.mp4"   CLASSES = [2, 3, 5, 7]
+#    ludzie:   SOURCE = 0                     CLASSES = [0]
+
+# 3. uruchom
+python -m src.app
+```
+
+Wynik: okno z detekcją, trwałymi ID, licznikiem kierunkowym i FPS; nagranie w `runs/demo.mp4`.
+
+## Status i dalsze kroki
+
+Projekt 1 (Faza A) ukończony. Pełny log komend: [`docs/instrukcja.md`](docs/instrukcja.md).
+Następnie **Faza B** — trening własnego modelu na platformie Ultralytics + optymalizacja
+TensorRT (roadmap, Etap 2+).

@@ -25,7 +25,7 @@ cv2.namedWindow("Licznik", cv2.WINDOW_NORMAL)
 cv2.resizeWindow("Licznik", 1280, 720)
 
 os.makedirs("runs", exist_ok=True)
-writer = cv2.VideoWriter("runs/demo.mp4", cv2.VideoWriter_fourcc(*"mp4v"), 30, (w, h))
+writer = cv2.VideoWriter("runs/detect/demo.mp4", cv2.VideoWriter_fourcc(*"mp4v"), 30, (w, h))
 prev_t = time.time()
 
 for r in results:

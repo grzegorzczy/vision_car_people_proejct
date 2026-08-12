@@ -457,11 +457,39 @@ writer.release()
 - **FPS** = `1 / (czas jednej klatki)` — wydajność całego pipeline'u (detekcja+tracking+rysowanie).
 - **VideoWriter**: `mp4v` kodek, `30` FPS pliku, `(w, h)` = rozmiar klatki. `release()` finalizuje plik.
 - Kończ klawiszem `q` (nie Ctrl+C), żeby plik był kompletny. `runs/` jest w `.gitignore`.
-- **Checkpoint:** widać licznik FPS; `runs/demo.mp4` otwiera się z ramkami i licznikami.
+- **Checkpoint:** widać licznik FPS; `runs/demo.mp4` otwiera się z ramkami i licznikami. ✅
 
 ### [ ] Krok 1.6 — Refaktor do modułów `src/`
 
-_(rozbicie skryptu na ingest / detection+tracking / logic / app.py — uzupełnimy przy realizacji)_
+Rozbicie monolitu na moduły (separation of concerns):
+
+```
+src/
+├── __init__.py     # pusty - oznacza pakiet
+├── config.py       # cała konfiguracja (model, źródło, klasy, linia)
+├── detector.py     # klasa Detector: YOLO26 + ByteTrack -> (frame, boxes, ids)
+├── counter.py      # klasa LineCounter: logika przecięcia linii + kierunek
+├── draw.py         # rysowanie nakładek (OpenCV)
+└── app.py          # spina wszystko w pętli
+```
+
+Uruchomienie z katalogu projektu (import pakietowy `from src import ...`):
+
+```
+python -m src.app
+```
+
+- **Dlaczego `-m src.app`**, a nie `python src/app.py`: importy pakietowe działają tylko, gdy Python widzi `src` jako pakiet (stąd pusty `__init__.py`).
+- **Zysk:** żeby przełączyć na ludzi, zmieniasz TYLKO `config.py` (`SOURCE = 0`, `CLASSES = [0]`). Reszta bez zmian.
+- **Checkpoint:** `python -m src.app` działa jak `counter_manual.py`, ale kod jest modularny. ✅
+
+**PROJEKT 1 UKOŃCZONY** — commit:
+
+```
+git add .
+git commit -m "Projekt 1: modularny licznik ludzi i pojazdow (Etap 1 gotowy)"
+git push
+```
 
 ---
 
