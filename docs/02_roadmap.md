@@ -3,10 +3,12 @@
 Każdy etap: **cel → co budujemy → co potrafisz po nim → co masz do pokazania w CV.**
 Zasada nadrzędna: najpierw ma *działać*, potem ma być *szybkie*, potem *skalowalne*.
 
-> **Decyzja o obiekcie (2026-08-11):** Etapy 0–1 robimy na **ludziach i pojazdach**
-> (gotowy YOLO26, klasy COCO — bez własnych danych). Od Etapu 2 przełączamy pipeline na
-> obiekt **przemysłowy** (butelki / LEGO / `jumo devices`). Cały projekt jest spięty z
-> **platformą Ultralytics**. Szczegółowy rozpis Etapów 0–1: [`05_projekt1_plan.md`](05_projekt1_plan.md).
+> **Zakres tego repozytorium:** zrealizowane są **Etapy 0–1** — licznik ludzi i pojazdów
+> na gotowym YOLO26 (klasy COCO, bez własnych danych). Szczegóły: [`05_projekt1_plan.md`](05_projekt1_plan.md),
+> komendy: [`instrukcja.md`](instrukcja.md).
+>
+> **Etapy 2–7** (trening własnego modelu, TensorRT, Kafka, DeepStream, Jetson, PLC) realizujemy
+> w kolejnym, osobnym projekcie — ta roadmapa pozostaje jako mapa całej ścieżki rozwoju.
 
 ---
 
