@@ -28,6 +28,9 @@ runs/
 outputs/
 *.log
 
+# --- Folder kontekstu (tylko na potrzeby LLM, nie do repo) ---
+context/
+
 # --- Pliki tymczasowe MS Office (blokady otwartych dokumentów) ---
 ~$*.docx
 ~$*.xlsx
