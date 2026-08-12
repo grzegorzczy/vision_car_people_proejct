@@ -17,7 +17,7 @@ Projekt 1 = **Etap 0 + Etap 1** z roadmapy.
   *dlaczego*. Ty wpisujesz, uruchamiasz, mówisz co widzisz — dopiero potem następny krok.
 - **Nic nie idzie dalej bez działającego checkpointu.** Każdy krok kończy się „sprawdź, że X".
 - **Commit po każdym kroku** (Git) — historia = dowód procesu do portfolio.
-- **Dziennik na bieżąco** w [`dziennik.md`](dziennik.md).
+- **Konkretne komendy** zapisujemy na bieżąco w [`instrukcja.md`](instrukcja.md).
 
 ### Legenda kroków
 Każdy krok opisany jest czterema polami:

@@ -11,7 +11,8 @@ Computer_vision_project/
 │   ├── 02_roadmap.md
 │   ├── 03_stack_i_narzedzia.md
 │   ├── 04_struktura_repo.md
-│   └── dziennik.md            # log postępu: co zrobione, co się nauczyłeś, problemy
+│   ├── 05_projekt1_plan.md
+│   └── instrukcja.md          # komendy krok po kroku (hands-on) z wyjaśnieniami
 │
 ├── src/                       # kod źródłowy
 │   ├── ingest/                # wczytywanie wideo (plik/USB/RTSP)
@@ -46,5 +47,5 @@ Computer_vision_project/
 ## Zasady porządku
 - **Rozdzielone moduły** (`detection`, `tracking`, `logic`) — łatwo testować i podmieniać.
 - **Duże pliki poza gitem** — wideo, wagi, enginy przez `.gitignore` (ew. git-lfs).
-- **`docs/dziennik.md`** — prowadzony na bieżąco; przy rekrutacji pokazuje Twój proces myślenia.
+- **`docs/instrukcja.md`** — komendy krok po kroku na bieżąco; gotowy materiał do sekcji „Setup" i dowód procesu przy rekrutacji.
 - **`.env.example`** zamiast twardych ścieżek — profesjonalny standard, żadnych sekretów w repo.

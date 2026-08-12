@@ -58,7 +58,7 @@ Każdy klocek systemu = konkretny wymóg z Twoich ofert:
 - [`docs/03_stack_i_narzedzia.md`](docs/03_stack_i_narzedzia.md) — technologie, wersje, dlaczego.
 - [`docs/04_struktura_repo.md`](docs/04_struktura_repo.md) — układ katalogów docelowego repo.
 - [`docs/05_projekt1_plan.md`](docs/05_projekt1_plan.md) — **szczegółowy plan Projektu 1** (kroki 0.1–1.6).
-- [`docs/dziennik.md`](docs/dziennik.md) — log decyzji i postępu.
+- [`docs/instrukcja.md`](docs/instrukcja.md) — **komendy krok po kroku** (hands-on) z wyjaśnieniami.
 
 ---
 
